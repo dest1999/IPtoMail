@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace IPtoMail
-{//TODO сохранить адрес для избежания повторной отправки на почту
+{
     class Program
     {
         static string GetIP(out bool IPaddressOK)
@@ -86,9 +86,9 @@ namespace IPtoMail
                 rec = recipients[i].Split(' ');
                 if (!rec[0].Contains("@")) continue;
 
-                if (!recipientsList.Contains(rec[0]))
+                if (!recipientsList.Contains(rec[0]))//определяем новые адреса
                 {
-                    recipientsList.Add(rec[0]);
+                    recipientsList.Add(rec[0]);//TODO лучше сформировать временный лист новых адресов для немедленной рассылки, а затем очистить список и заново перечитать из файла
                     count++;
                 }
 
@@ -101,7 +101,7 @@ namespace IPtoMail
         #region VARIABLES
             static List<string> recipientsList = new List<string>();
             static DateTime lastTimeRecipientsListChanged;
-            static string mailsenderUserName = "",
+            static string mailsenderUserName = "",//TODO после введения объекта-рассыльщика отсюда поубирать лишнее
                           smtpServer = "smtp.mail.ru",
                           currentIP = "";
             static ushort smtpPort = 25;
@@ -126,9 +126,7 @@ namespace IPtoMail
                     CheckingFiles();
                     Console.WriteLine("Enter Password for e-mail sender:");
                     string mailPassword = GetPassword();
-                    string
-                        
-                        mbNewIP;
+                    string mbNewIP;
                     while (true)
                     {
                         CheckRecipientsListUpdate();//после отладки это убрать сдесь, раскомментировать ниже
