@@ -65,7 +65,7 @@ namespace IPtoMail
                 {
                     sendingOK = false;
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"{DateTime.Now} {recipientAddress} sending false");
+                    Console.WriteLine($"{DateTime.Now} {recipientAddress} sending fail");
                     Console.ResetColor();
                 }
 
@@ -74,33 +74,43 @@ namespace IPtoMail
 
         static void RecipientsListFormer()
         {
-Console.WriteLine("recipient list re-formed from file");
-            recipientsList.Clear();
-            recipientsList.Add(mailsenderUserName);
-            string[] rec;
-            string[] recipients = File.ReadAllLines("recipients.list");
+            int count = 0;
+            Console.WriteLine("recipients list has changed, looking for new recipients");
 
+            string[] rec;
+            string[] recipients = File.ReadAllLines(recipientsFile);
+            
             for (int i = 0; i < recipients.Length; i++)
             {
                 if (recipients[i].StartsWith("#")) continue;
                 rec = recipients[i].Split(' ');
                 if (!rec[0].Contains("@")) continue;
-                recipientsList.Add(rec[0]);
+
+                if (!recipientsList.Contains(rec[0]))
+                {
+                    recipientsList.Add(rec[0]);
+                    count++;
+                }
+
+
+
             }
+            Console.WriteLine($"{count} recipients was added to mailing list");
         }
         
         #region VARIABLES
             static List<string> recipientsList = new List<string>();
             static DateTime lastTimeRecipientsListChanged;
             static string mailsenderUserName = "",
-                          smtpServer = "smtp.mail.ru";
+                          smtpServer = "smtp.mail.ru",
+                          currentIP = "";
             static ushort smtpPort = 25;
 
             const string recipientsFile = "recipients.list",
                          logFile = "events.log";
 
         #endregion
-        static void Main(string[] args)//args: mailUserName
+        static void Main(string[] args)
         {
             if (args.Length != 2)
             {
@@ -111,12 +121,13 @@ Console.WriteLine("recipient list re-formed from file");
                 if (TryParseArgs(args))
                 {
                     mailsenderUserName = args[0];
+                    recipientsList.Add(mailsenderUserName);
                     Console.WriteLine($"Sender name: {mailsenderUserName}\nServer parameters: {args[1]}");
                     CheckingFiles();
                     Console.WriteLine("Enter Password for e-mail sender:");
                     string mailPassword = GetPassword();
                     string
-                        currentIP = "",
+                        
                         mbNewIP;
                     while (true)
                     {
@@ -127,7 +138,6 @@ Console.WriteLine("recipient list re-formed from file");
                             currentIP = mbNewIP;
                             Console.WriteLine($"{DateTime.Now} your IP is {currentIP}");
                             //CheckRecipientsListUpdate();
-
                             foreach (string recipient in recipientsList)
                             {
                                 SendMessage(mailsenderUserName, mailPassword, recipient, currentIP, out bool sendingOK);
@@ -162,7 +172,7 @@ Console.WriteLine("recipient list re-formed from file");
             {
                 Console.Write('*');
             }
-
+            Console.WriteLine();
             return password;
         }
 
