@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Mail;
 using System.IO;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace IPtoMail
 {//TODO сохранить адрес для избежания повторной отправки на почту
@@ -73,7 +74,7 @@ namespace IPtoMail
 
         static void RecipientsListFormer()
         {
-Console.WriteLine("recipient list re-formed");
+Console.WriteLine("recipient list re-formed from file");
             recipientsList.Clear();
             recipientsList.Add(mailsenderUserName);
             string[] rec;
@@ -110,21 +111,23 @@ Console.WriteLine("recipient list re-formed");
                 mailsenderUserName = args[0];
                 if (TryParseArgs(args[1]))
                 {
+                    Console.WriteLine($"Sender name: {mailsenderUserName}\nServer parameters: {args[1]}");
                     CheckingFiles();
                     Console.WriteLine("Enter mailPassword:");
-                    string mailPassword = Console.ReadLine();
-                    Console.Clear();
+                    string mailPassword = GetPassword();
+                    //Console.Clear();
                     string
                         currentIP = "",
                         mbNewIP;
                     while (true)
                     {
+                        CheckRecipientsListUpdate();//после отладки это убрать сдесь, раскомментировать ниже
                         mbNewIP = GetIP(out bool IPaddressOK);
                         if (currentIP != mbNewIP && IPaddressOK)
                         {
                             currentIP = mbNewIP;
                             Console.WriteLine($"{DateTime.Now} your IP is {currentIP}");
-                            CheckRecipientsListUpdate();
+                            //CheckRecipientsListUpdate();
 
                             foreach (string recipient in recipientsList)
                             {
@@ -148,6 +151,20 @@ Console.WriteLine("recipient list re-formed");
                 }
             }
 
+        }
+
+        private static string GetPassword()
+        {
+            string password = Console.ReadLine();
+            --Console.CursorTop;
+            Console.CursorLeft = 0;
+
+            foreach (var item in password)
+            {
+                Console.Write('*');
+            }
+
+            return password;
         }
 
         private static bool TryParseArgs(string v)
