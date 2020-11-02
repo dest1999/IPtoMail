@@ -108,14 +108,13 @@ Console.WriteLine("recipient list re-formed from file");
             }
             else
             {
-                mailsenderUserName = args[0];
-                if (TryParseArgs(args[1]))
+                if (TryParseArgs(args))
                 {
+                    mailsenderUserName = args[0];
                     Console.WriteLine($"Sender name: {mailsenderUserName}\nServer parameters: {args[1]}");
                     CheckingFiles();
-                    Console.WriteLine("Enter mailPassword:");
+                    Console.WriteLine("Enter Password for e-mail sender:");
                     string mailPassword = GetPassword();
-                    //Console.Clear();
                     string
                         currentIP = "",
                         mbNewIP;
@@ -167,11 +166,11 @@ Console.WriteLine("recipient list re-formed from file");
             return password;
         }
 
-        private static bool TryParseArgs(string v)
+        private static bool TryParseArgs(string[] v)
         {
-            if (v.Contains(":"))
+            if (v[0].Contains("@") && v[1].Contains(":"))
             {
-                string[] str = v.Split(':');
+                string[] str = v[1].Split(':');
                 smtpServer = str[0];
 
                 if (ushort.TryParse(str[1], out smtpPort))
