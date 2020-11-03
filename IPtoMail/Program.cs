@@ -95,7 +95,7 @@ namespace IPtoMail
         static void RecipientsListFormer()
         {
             int count = 0;
-            Console.WriteLine("recipients list has changed, looking for new recipients");
+            Console.WriteLine("looking for new recipients in file");
 
             string[] tmpStrArray,
                      recipients = File.ReadAllLines(recipientsFile);
@@ -117,7 +117,7 @@ namespace IPtoMail
             }
             
 
-            WriteLogEvent(new List<string> { $"{DateTime.Now} {count} recipients was added to mailing list" }, ConsoleColor.Gray);
+            WriteLogEvent(new List<string> { $"{DateTime.Now} mailing list was updated" }, ConsoleColor.Gray);
         }
         
         #region VARIABLES
@@ -143,16 +143,18 @@ namespace IPtoMail
                 if (TryParseArgs(args))
                 {
                     mailsenderUserName = args[0];
-                    recipientsList.Add(mailsenderUserName);
                     Console.WriteLine($"Sender name: {mailsenderUserName}\nServer parameters: {args[1]}");
-                    CheckingFiles();
                     Console.WriteLine("Enter Password for e-mail sender:");
                     string mailPassword = GetPassword();
                     string mbNewIP;
+                        //
+
+                    recipientsList.Add(mailsenderUserName);
+                    CheckingFiles();
                     while (true)
                     {
-                        mbNewIP = GetIP(out bool IPaddressOK);
                         CheckRecipientsListUpdate();
+                        mbNewIP = GetIP(out bool IPaddressOK);
                         if (currentIP != mbNewIP && IPaddressOK)
                         {
                             currentIP = mbNewIP;
