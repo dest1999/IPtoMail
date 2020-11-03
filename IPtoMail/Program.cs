@@ -57,45 +57,67 @@ namespace IPtoMail
                 {
                     client.Send(message);
                     sendingOK = true;
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"{DateTime.Now} {recipientAddress} sending ok");
-                    Console.ResetColor();
+                    WriteLogEvent(new List<string> { $"{DateTime.Now} {recipientAddress} sending ok" }, ConsoleColor.Green);
+
                 }
                 catch (Exception)
                 {
                     sendingOK = false;
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"{DateTime.Now} {recipientAddress} sending fail");
-                    Console.ResetColor();
+                    WriteLogEvent(new List<string> { $"{DateTime.Now} {recipientAddress} sending fail" }, ConsoleColor.Red);
                 }
 
             };
         }
+        static bool WriteLogEvent(List<string> events, ConsoleColor color)
+        {
+            Console.ForegroundColor = color;
+            foreach (var item in events)
+            {
+                Console.WriteLine(item);
+            }
+            Console.ResetColor();
 
+            try
+            {
+                File.AppendAllLines(logFile, events);
+
+            }
+            catch (IOException)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"{DateTime.Now}: Cant write event to log");
+                Console.ResetColor();
+                return false;
+            }
+            return true;
+            
+        }
         static void RecipientsListFormer()
         {
             int count = 0;
             Console.WriteLine("recipients list has changed, looking for new recipients");
 
-            string[] rec;
-            string[] recipients = File.ReadAllLines(recipientsFile);
+            string[] tmpStrArray,
+                     recipients = File.ReadAllLines(recipientsFile);
             
             for (int i = 0; i < recipients.Length; i++)
             {
                 if (recipients[i].StartsWith("#")) continue;
-                rec = recipients[i].Split(' ');
-                if (!rec[0].Contains("@")) continue;
+                tmpStrArray = recipients[i].Split(' ');
+                if (!tmpStrArray[0].Contains("@")) continue;
 
-                if (!recipientsList.Contains(rec[0]))//определяем новые адреса
+                if (!recipientsList.Contains(tmpStrArray[0]))//определяем новые адреса
                 {
-                    recipientsList.Add(rec[0]);//TODO лучше сформировать временный лист новых адресов для немедленной рассылки, а затем очистить список и заново перечитать из файла
+                    recipientsList.Add(tmpStrArray[0]);//TODO лучше сформировать временный лист новых адресов для немедленной рассылки, а затем очистить список и заново перечитать из файла
                     count++;
                 }
 
 
 
             }
-            Console.WriteLine($"{count} recipients was added to mailing list");
+            
+
+            WriteLogEvent(new List<string> { $"{DateTime.Now} {count} recipients was added to mailing list" }, ConsoleColor.Gray);
         }
         
         #region VARIABLES
@@ -129,21 +151,18 @@ namespace IPtoMail
                     string mbNewIP;
                     while (true)
                     {
-                        CheckRecipientsListUpdate();//после отладки это убрать сдесь, раскомментировать ниже
                         mbNewIP = GetIP(out bool IPaddressOK);
+                        CheckRecipientsListUpdate();
                         if (currentIP != mbNewIP && IPaddressOK)
                         {
                             currentIP = mbNewIP;
-                            Console.WriteLine($"{DateTime.Now} your IP is {currentIP}");
-                            //CheckRecipientsListUpdate();
+                            WriteLogEvent(new List<string> { $"{DateTime.Now} your IP is {currentIP}" }, ConsoleColor.Gray);
                             foreach (string recipient in recipientsList)
                             {
                                 SendMessage(mailsenderUserName, mailPassword, recipient, currentIP, out bool sendingOK);
                                 if (!sendingOK)
                                 {
-                                    Console.ForegroundColor = ConsoleColor.Red;
-                                    Console.WriteLine($"{DateTime.Now} error sending e-mail. Check username, password and connection");
-                                    Console.ResetColor();
+                                    WriteLogEvent(new List<string> { $"{DateTime.Now} error sending e-mail. Check username, password and connection" }, ConsoleColor.Red);
                                 }
 
                             }
@@ -180,12 +199,9 @@ namespace IPtoMail
             {
                 string[] str = v[1].Split(':');
                 smtpServer = str[0];
-
                 if (ushort.TryParse(str[1], out smtpPort))
                     return true;
-
             }
-            
             return false;
         }
 
@@ -200,12 +216,10 @@ namespace IPtoMail
 
         static void CheckingFiles()
         {
-            if (!File.Exists(logFile))
+            if (!File.Exists(logFile))//возможно этот блок убрать: файл создавать при первой записи в лог
             {
                 using (File.Create(logFile));
             }
-
-
 
             if (!File.Exists(recipientsFile))
             {
@@ -218,8 +232,6 @@ namespace IPtoMail
             }
             //CheckRecipientsListUpdate();
             lastTimeRecipientsListChanged = File.GetLastWriteTime(recipientsFile);
-            
-
 
         }
     }
