@@ -37,38 +37,8 @@ namespace IPtoMail
 
         }
 
-        static void SendMessage(string mailUserName, string mailPassword, string recipientAddress, string body, out bool sendingOK)
-        {
-            var sender = new MailAddress(mailUserName);
-            var recipient = new MailAddress(recipientAddress);
 
-            using var message = new MailMessage(sender, recipient)
-            {
-                Subject = "New address",
-                Body = body
-            };
-
-            using (var client = new SmtpClient(smtpServer, smtpPort))
-            {
-                client.Credentials = new NetworkCredential(mailUserName, mailPassword);
-                client.EnableSsl = true;
-
-                try
-                {
-                    client.Send(message);
-                    sendingOK = true;
-                    WriteLogEvent(new List<string> { $"{DateTime.Now} {recipientAddress} sending ok" }, ConsoleColor.Green);
-
-                }
-                catch (Exception)
-                {
-                    sendingOK = false;
-                    WriteLogEvent(new List<string> { $"{DateTime.Now} {recipientAddress} sending fail" }, ConsoleColor.Red);
-                }
-
-            };
-        }
-        static bool WriteLogEvent(List<string> events, ConsoleColor color)
+        static bool WriteLogEvent(List<string> events, ConsoleColor color = ConsoleColor.Gray)
         {
             Console.ForegroundColor = color;
             foreach (var item in events)
@@ -123,10 +93,6 @@ namespace IPtoMail
         #region VARIABLES
             static List<string> recipientsList = new List<string>();
             static DateTime lastTimeRecipientsListChanged;
-            static string mailsenderUserName = "",//TODO после введения объекта-рассыльщика отсюда поубирать лишнее
-                          smtpServer = "smtp.mail.ru",
-                          currentIP = "";
-            static ushort smtpPort = 25;
 
             const string recipientsFile = "recipients.list",
                          logFile = "events.log";
@@ -134,21 +100,23 @@ namespace IPtoMail
         #endregion
         static void Main(string[] args)
         {
-            if (args.Length != 2)
+            if (args.Length < 2)
             {
-                Console.WriteLine("The arguments is: mailUserName server:port\ne.g. user@server.com smtp.server.com:25");
+                Console.WriteLine("The arguments is: mailUserName server:port ssl\neg user@server.com smtp.server.com:25 ssl(if use SSL)\nor user@server.com smtp.server.com:25");
             }
             else
             {
-                if (TryParseArgs(args))
+                if (TryParseArgs(args, out string smtpServer, out ushort smtpPort, out bool useSSL))
                 {
-                    mailsenderUserName = args[0];
+                    string  mbNewIP,
+                            currentIP = "",
+                            mailsenderUserName = args[0];
+
                     Console.WriteLine($"Sender name: {mailsenderUserName}\nServer parameters: {args[1]}");
                     Console.WriteLine("Enter Password for e-mail sender:");
-                    string mailPassword = GetPassword();
-                    string mbNewIP;
-                        //
-
+                    
+                    //
+                    MailSender sender = new MailSender(mailsenderUserName, GetPassword(), smtpServer, smtpPort, useSSL);
                     recipientsList.Add(mailsenderUserName);
                     CheckingFiles();
                     while (true)
@@ -159,26 +127,56 @@ namespace IPtoMail
                         {
                             currentIP = mbNewIP;
                             WriteLogEvent(new List<string> { $"{DateTime.Now} your IP is {currentIP}" }, ConsoleColor.Gray);
+
                             foreach (string recipient in recipientsList)
                             {
-                                SendMessage(mailsenderUserName, mailPassword, recipient, currentIP, out bool sendingOK);
-                                if (!sendingOK)
+                                (string toLog, bool send) = sender.SendMessage(recipient, currentIP);
+                                
+                                if (send)
                                 {
-                                    WriteLogEvent(new List<string> { $"{DateTime.Now} error sending e-mail. Check username, password and connection" }, ConsoleColor.Red);
+                                    WriteLogEvent(new List<string> { toLog }, ConsoleColor.Green);
+                                }
+                                else
+                                {
+                                    WriteLogEvent(new List<string> { toLog }, ConsoleColor.Red);
                                 }
 
                             }
                         }
                         Thread.Sleep(60000);
                     }
-
                 }
                 else
                 {
                     Console.WriteLine("Wrong input parameters");
                 }
             }
+        }
 
+        private static bool TryParseArgs(string[] v, out string smtpServer, out ushort smtpPort, out bool ssl)
+        {
+            smtpServer = null;
+            smtpPort = 0;
+            ssl = false;
+
+            try
+            {
+                if (v[2].ToLower() == "ssl")
+                    ssl = true;
+            }
+            catch (Exception)
+            {
+                ssl = false;
+            }
+
+            if (v[0].Contains("@") && v[1].Contains(":"))
+            {
+                string[] str = v[1].Split(':');
+                smtpServer = str[0];
+                if (ushort.TryParse(str[1], out smtpPort))
+                    return true;
+            }
+            return false;
         }
 
         private static string GetPassword()
@@ -194,19 +192,6 @@ namespace IPtoMail
             Console.WriteLine();
             return password;
         }
-
-        private static bool TryParseArgs(string[] v)
-        {
-            if (v[0].Contains("@") && v[1].Contains(":"))
-            {
-                string[] str = v[1].Split(':');
-                smtpServer = str[0];
-                if (ushort.TryParse(str[1], out smtpPort))
-                    return true;
-            }
-            return false;
-        }
-
         private static void CheckRecipientsListUpdate()
         {
             if (lastTimeRecipientsListChanged != File.GetLastWriteTime(recipientsFile))
