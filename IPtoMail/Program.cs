@@ -36,8 +36,6 @@ namespace IPtoMail
             }
 
         }
-
-
         static bool WriteLogEvent(List<string> events, ConsoleColor color = ConsoleColor.Gray)
         {
             Console.ForegroundColor = color;
@@ -52,10 +50,11 @@ namespace IPtoMail
                 File.AppendAllLines(logFile, events);
 
             }
-            catch (IOException)
+            catch (IOException)//TODO возможно, отложенная запись на случай ошибки?
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"{DateTime.Now}: Cant write event to log");
+                Console.BackgroundColor = ConsoleColor.DarkBlue;
+                Console.WriteLine($"< < < < < \t{DateTime.Now}: Cant write event to log\t > > > > >");
                 Console.ResetColor();
                 return false;
             }
@@ -65,29 +64,27 @@ namespace IPtoMail
         static void RecipientsListFormer()
         {
             int count = 0;
-            Console.WriteLine("looking for new recipients in file");
-
+            //Console.WriteLine("looking for new recipients in file");
+            List<string> immediatelySending = new List<string>();
             string[] tmpStrArray,
-                     recipients = File.ReadAllLines(recipientsFile);
-            
-            for (int i = 0; i < recipients.Length; i++)
+                     recipientsAddresses = File.ReadAllLines(recipientsFile);
+
+            foreach (var recipient in recipientsAddresses)
             {
-                if (recipients[i].StartsWith("#")) continue;
-                tmpStrArray = recipients[i].Split(' ');
+                if (recipient.StartsWith("#")) continue;
+                tmpStrArray = recipient.Split(' ');
                 if (!tmpStrArray[0].Contains("@")) continue;
 
                 if (!recipientsList.Contains(tmpStrArray[0]))//определяем новые адреса
                 {
-                    recipientsList.Add(tmpStrArray[0]);//TODO лучше сформировать временный лист новых адресов для немедленной рассылки, а затем очистить список и заново перечитать из файла
+                    immediatelySending.Add(tmpStrArray[0]);
                     count++;
                 }
-
-
-
             }
+            WriteLogEvent(new List<string> { $"{DateTime.Now} mailing list was updated" });
+
             
 
-            WriteLogEvent(new List<string> { $"{DateTime.Now} mailing list was updated" }, ConsoleColor.Gray);
         }
         
         #region VARIABLES
@@ -125,7 +122,7 @@ namespace IPtoMail
                         if (currentIP != mbNewIP && IPaddressOK)
                         {
                             currentIP = mbNewIP;
-                            WriteLogEvent(new List<string> { $"{DateTime.Now} your IP is {currentIP}" }, ConsoleColor.Gray);
+                            WriteLogEvent(new List<string> { $"{DateTime.Now} your IP is {currentIP}" });
 
 
                             (List<string> toLog, bool sendingOK) = sender.SendMessage(recipientsList, currentIP);
@@ -183,7 +180,7 @@ namespace IPtoMail
             --Console.CursorTop;
             Console.CursorLeft = 0;
 
-            foreach (var item in password)
+            foreach (var _ in password)
             {
                 Console.Write('*');
             }
