@@ -115,7 +115,6 @@ namespace IPtoMail
                     Console.WriteLine($"Sender name: {mailsenderUserName}\nServer parameters: {args[1]}");
                     Console.WriteLine("Enter Password for e-mail sender:");
                     
-                    //
                     MailSender sender = new MailSender(mailsenderUserName, GetPassword(), smtpServer, smtpPort, useSSL);
                     recipientsList.Add(mailsenderUserName);
                     CheckingFiles();
@@ -128,20 +127,19 @@ namespace IPtoMail
                             currentIP = mbNewIP;
                             WriteLogEvent(new List<string> { $"{DateTime.Now} your IP is {currentIP}" }, ConsoleColor.Gray);
 
-                            foreach (string recipient in recipientsList)
-                            {
-                                (string toLog, bool send) = sender.SendMessage(recipient, currentIP);
-                                
-                                if (send)
-                                {
-                                    WriteLogEvent(new List<string> { toLog }, ConsoleColor.Green);
-                                }
-                                else
-                                {
-                                    WriteLogEvent(new List<string> { toLog }, ConsoleColor.Red);
-                                }
 
+                            (List<string> toLog, bool sendingOK) = sender.SendMessage(recipientsList, currentIP);
+
+                            if (sendingOK)
+                            {
+                                WriteLogEvent(toLog, ConsoleColor.Green);
                             }
+                            else
+                            {
+                                WriteLogEvent(toLog, ConsoleColor.Red);
+                            }
+
+
                         }
                         Thread.Sleep(60000);
                     }

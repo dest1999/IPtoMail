@@ -66,11 +66,11 @@ namespace IPtoMail
             }
             else
             {
-                outString.Add($"{DateTime.Now} sended to {recipientsList.Count - failes}, no errors");
-                outString.Add($"\t\terrors to send: {failes}, to addresses");
+                outString.Add($"{DateTime.Now} successfull sended: {recipientsList.Count - failes}");
+                outString.Add($"\terrors to send: {failes}, to addresses");
                 foreach (var item in failedAddresses)
                 {
-                    outString.Add($"\t\t{item}");
+                    outString.Add($"\t{item}");
                 }
             }
             return (outString, sendedOK);
