@@ -25,9 +25,8 @@ namespace IPtoMail
             this.useSSL = useSSL;
         }
         
-        public (List<string> stringsToLog, bool sendedOK) SendMessage(List<string> recipientsList, string body)
+        public bool SendMessage(List<string> recipientsList, string body)
         {
-            bool sendedOK = true;
             int failes = 0;
             List<string> failedAddresses = new List<string>();
             List<string> outString = new List<string>();
@@ -55,17 +54,16 @@ namespace IPtoMail
                     {
                         failes++;
                         failedAddresses.Add(address);
-                        sendedOK = false;
                     }
                 };
             }
             
-            
-            if (sendedOK)
+            if (failes == 0)
             {
-                outString.Add($"{DateTime.Now} sended to {recipientsList.Count}, no errors");
+                Logger.WriteLogEvent(new List<string>(){ $"{DateTime.Now} sended to {recipientsList.Count}, no errors"}, ConsoleColor.Green);
+                return true;
             }
-            else
+            else//ошибки при отправке
             {
                 outString.Add($"{DateTime.Now} successfull sended: {recipientsList.Count - failes}");
                 outString.Add($"\terrors to send: {failes}, to addresses");
@@ -73,8 +71,10 @@ namespace IPtoMail
                 {
                     outString.Add($"\t{item}");
                 }
+                Logger.WriteLogEvent(outString, ConsoleColor.Red);
+                return false;
             }
-            return (outString, sendedOK);
+
         }
 
         public (string stringToLog, bool sendedOK) SendMessage (string recipientAddress, string body)

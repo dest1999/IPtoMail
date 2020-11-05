@@ -36,36 +36,10 @@ namespace IPtoMail
             }
 
         }
-        static bool WriteLogEvent(List<string> events, ConsoleColor color = ConsoleColor.Gray)
-        {
-        //TODO оформить систему логирования как отдельный класс (static), и => дергать приямо из методов
-            Console.ForegroundColor = color;
-            foreach (var item in events)
-            {
-                Console.WriteLine(item);
-            }
-            Console.ResetColor();
 
-            try
-            {
-                File.AppendAllLines(logFile, events);
-
-            }
-            catch (IOException)//TODO возможно, отложенная запись на случай ошибки?
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.BackgroundColor = ConsoleColor.DarkBlue;
-                Console.WriteLine($"< < < < < \t{DateTime.Now}: Cant write event to log\t > > > > >");
-                Console.ResetColor();
-                return false;
-            }
-            return true;
-            
-        }
         static List<string> RecipientsListFormer()
         {
-            int count = 0;
-            Console.WriteLine("looking for new recipients in file");
+            //Console.WriteLine("looking for new recipients in file");
             List<string> mbNewRecipientsList = new List<string>(){ recipientsList[0] };
             List<string> forImmediatelySending = new List<string>();
             string[] tmpStrArray,
@@ -81,14 +55,13 @@ namespace IPtoMail
                 if (!recipientsList.Contains(tmpStrArray[0]))//определяем новые адреса
                 {
                     forImmediatelySending.Add(tmpStrArray[0]);
-                    count++;
                 }
             }
 
             if (mbNewRecipientsList.Count != recipientsList.Count)//если кол-во адресатов изменилось
             {
                 recipientsList = mbNewRecipientsList;
-                WriteLogEvent(new List<string> { $"{DateTime.Now} mailing list was updated" });
+                Logger.WriteLogEvent(new List<string> { $"{DateTime.Now} mailing list was updated" });
 
             }
 
@@ -100,8 +73,8 @@ namespace IPtoMail
             static List<string> recipientsList = new List<string>();
             static DateTime lastTimeRecipientsListChanged;
 
-            const string recipientsFile = "recipients.list",
-                         logFile = "events.log";
+            public const string recipientsFile = "recipients.list",
+                                logFile = "events.log";
 
         #endregion
         static void Main(string[] args)
@@ -128,35 +101,19 @@ namespace IPtoMail
                     {
                         if (CheckRecipientsListUpdate(out List<string> listToSendImmed))
                         {//в список добавлены новые адреса
-                            (List<string> toLog, bool sendingOK) = sender.SendMessage(listToSendImmed, currentIP);
-                            if (sendingOK)
-                            {
-                                WriteLogEvent(toLog, ConsoleColor.Green);
-                            }
-                            else
-                            {
-                                WriteLogEvent(toLog, ConsoleColor.Red);
-                            }
+                            sender.SendMessage(listToSendImmed, currentIP);
+
                         }
                         mbNewIP = GetIP(out bool IPaddressOK);
                         if (currentIP != mbNewIP && IPaddressOK)
                         {
                             currentIP = mbNewIP;
-                            WriteLogEvent(new List<string> { $"{DateTime.Now} your IP is {currentIP}" });
+                            Logger.WriteLogEvent(new List<string> { $"{DateTime.Now} your IP is {currentIP}" });
 
+                            sender.SendMessage(recipientsList, currentIP);
 
-                            (List<string> toLog, bool sendingOK) = sender.SendMessage(recipientsList, currentIP);
-
-                            if (sendingOK)
-                            {
-                                WriteLogEvent(toLog, ConsoleColor.Green);
-                            }
-                            else
-                            {
-                                WriteLogEvent(toLog, ConsoleColor.Red);
-                            }
                         }
-                        Console.Title = $"IP is {currentIP}, last IP check: {DateTime.Now}";//для отладки, потом убрать... А может оставить
+                        Console.Title = $"IP is {currentIP}, last IP check: {DateTime.Now}";
                         Thread.Sleep(60000);
                     }
                 }
