@@ -38,6 +38,7 @@ namespace IPtoMail
         }
         static bool WriteLogEvent(List<string> events, ConsoleColor color = ConsoleColor.Gray)
         {
+        //TODO оформить систему логирования как отдельный класс (static), и => дергать приямо из методов
             Console.ForegroundColor = color;
             foreach (var item in events)
             {
@@ -61,11 +62,12 @@ namespace IPtoMail
             return true;
             
         }
-        static void RecipientsListFormer()
+        static List<string> RecipientsListFormer()
         {
             int count = 0;
-            //Console.WriteLine("looking for new recipients in file");
-            List<string> immediatelySending = new List<string>();
+            Console.WriteLine("looking for new recipients in file");
+            List<string> mbNewRecipientsList = new List<string>(){ recipientsList[0] };
+            List<string> forImmediatelySending = new List<string>();
             string[] tmpStrArray,
                      recipientsAddresses = File.ReadAllLines(recipientsFile);
 
@@ -74,16 +76,23 @@ namespace IPtoMail
                 if (recipient.StartsWith("#")) continue;
                 tmpStrArray = recipient.Split(' ');
                 if (!tmpStrArray[0].Contains("@")) continue;
+                mbNewRecipientsList.Add(tmpStrArray[0]);
 
                 if (!recipientsList.Contains(tmpStrArray[0]))//определяем новые адреса
                 {
-                    immediatelySending.Add(tmpStrArray[0]);
+                    forImmediatelySending.Add(tmpStrArray[0]);
                     count++;
                 }
             }
-            WriteLogEvent(new List<string> { $"{DateTime.Now} mailing list was updated" });
 
-            
+            if (mbNewRecipientsList.Count != recipientsList.Count)//если кол-во адресатов изменилось
+            {
+                recipientsList = mbNewRecipientsList;
+                WriteLogEvent(new List<string> { $"{DateTime.Now} mailing list was updated" });
+
+            }
+
+            return forImmediatelySending;
 
         }
         
@@ -117,7 +126,18 @@ namespace IPtoMail
                     CheckingFiles();
                     while (true)
                     {
-                        CheckRecipientsListUpdate();
+                        if (CheckRecipientsListUpdate(out List<string> listToSendImmed))
+                        {//в список добавлены новые адреса
+                            (List<string> toLog, bool sendingOK) = sender.SendMessage(listToSendImmed, currentIP);
+                            if (sendingOK)
+                            {
+                                WriteLogEvent(toLog, ConsoleColor.Green);
+                            }
+                            else
+                            {
+                                WriteLogEvent(toLog, ConsoleColor.Red);
+                            }
+                        }
                         mbNewIP = GetIP(out bool IPaddressOK);
                         if (currentIP != mbNewIP && IPaddressOK)
                         {
@@ -135,9 +155,8 @@ namespace IPtoMail
                             {
                                 WriteLogEvent(toLog, ConsoleColor.Red);
                             }
-
-
                         }
+                        Console.Title = $"IP is {currentIP}, last IP check: {DateTime.Now}";//для отладки, потом убрать... А может оставить
                         Thread.Sleep(60000);
                     }
                 }
@@ -187,12 +206,22 @@ namespace IPtoMail
             Console.WriteLine();
             return password;
         }
-        private static void CheckRecipientsListUpdate()
+        private static bool CheckRecipientsListUpdate(out List<string> listToSendImmed)
         {
+            listToSendImmed = null;
             if (lastTimeRecipientsListChanged != File.GetLastWriteTime(recipientsFile))
-            {
+            {//есть изменения в файле
                 lastTimeRecipientsListChanged = File.GetLastWriteTime(recipientsFile);
-                RecipientsListFormer();
+                listToSendImmed = RecipientsListFormer();
+                if (listToSendImmed.Count != 0)
+                {//в список адресов добавлены новые, необходимо разослать им немедленно
+                    return true;
+                }
+                return false;
+            }
+            else
+            {//нет изменений в файле
+                return false;
             }
         }
 
