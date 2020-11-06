@@ -143,7 +143,7 @@ namespace IPtoMail
             return false;
         }
 
-        private static string GetPassword()
+        private static string GetPassword()//TODO сохранить пароль к почте для возможности запуска в скриптах
         {
             string password = Console.ReadLine();
             --Console.CursorTop;
