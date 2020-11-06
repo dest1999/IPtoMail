@@ -6,6 +6,7 @@ using System.Net.Mail;
 using System.IO;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace IPtoMail
 {
@@ -13,21 +14,13 @@ namespace IPtoMail
     {
         static string GetIP(out bool IPaddressOK)
         {
+            string IP;
             try
             {
-                var req = WebRequest.Create("http://checkip.dyndns.org");
-                string reqstring;
-
-                using (var reader = new StreamReader(req.GetResponse().GetResponseStream()))
-                {
-                    reqstring = reader.ReadToEnd();
-                }
-                string[] a = reqstring.Split(':');//TODO попробовать использовать regex при вычленении IP-адреса
-                string a2 = a[1].Substring(1);
-                a = a2.Split('<');
+                IP = new WebClient().DownloadString("http://checkip.dyndns.org");
+                IP = new Regex(@"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}").Matches(IP)[0].ToString();
                 IPaddressOK = true;
-                return a[0].ToString();
-
+                return IP;
             }
             catch (Exception)
             {

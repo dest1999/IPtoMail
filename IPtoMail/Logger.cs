@@ -35,7 +35,7 @@ namespace IPtoMail
             {
                 File.AppendAllLines(Program.logFile, eventStorage);
             }
-            catch (Exception)//TODO возможно, отложенная запись на случай ошибки?
+            catch (Exception)//отложенная запись на случай ошибки
             {
 
                 eventStorageNotEmpty = true;
