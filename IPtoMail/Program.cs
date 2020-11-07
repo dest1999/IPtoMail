@@ -12,15 +12,13 @@ namespace IPtoMail
 {
     class Program
     {
+        static WebClient webClient = new WebClient();
         static string GetIP(out bool IPaddressOK)
         {
             string IP;
             try
             {
-                IP = new WebClient().DownloadString("http://checkip.dyndns.org");
-                IP = new Regex(@"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}").Matches(IP)[0].ToString();
-                IPaddressOK = true;
-                return IP;
+                IP = webClient.DownloadString("http://checkip.dyndns.org");
             }
             catch (Exception)
             {
@@ -28,6 +26,9 @@ namespace IPtoMail
                 return "";
             }
 
+            IP = new Regex(@"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}").Matches(IP)[0].ToString();
+            IPaddressOK = true;
+            return IP;
         }
 
         static List<string> RecipientsListFormer()
@@ -67,7 +68,8 @@ namespace IPtoMail
             static DateTime lastTimeRecipientsListChanged;
 
             public const string recipientsFile = "recipients.list",
-                                logFile = "events.log";
+                                logFile = "events.log",
+                                passFile = "password";
 
         #endregion
         static void Main(string[] args)
@@ -85,11 +87,12 @@ namespace IPtoMail
                             mailsenderUserName = args[0];
 
                     Console.WriteLine($"Sender name: {mailsenderUserName}\nServer parameters: {args[1]}");
-                    Console.WriteLine("Enter Password for e-mail sender:");
+                    //Console.WriteLine("Enter Password for e-mail sender:");
                     
-                    MailSender sender = new MailSender(mailsenderUserName, GetPassword(), smtpServer, smtpPort, useSSL);
                     recipientsList.Add(mailsenderUserName);
                     CheckingFiles();
+
+                    MailSender sender = new MailSender(mailsenderUserName, GetPassword(), smtpServer, smtpPort, useSSL);
                     while (true)
                     {
                         if (CheckRecipientsListUpdate(out List<string> listToSendImmed))
@@ -106,7 +109,7 @@ namespace IPtoMail
                             sender.SendMessage(recipientsList, currentIP);
 
                         }
-                        Console.Title = $"IP is {currentIP}, last IP check: {DateTime.Now}";
+                        Console.Title = $"IP is {currentIP}, last IP check: {DateTime.Now.ToShortTimeString() }";
                         Thread.Sleep(60000);
                     }
                 }
@@ -145,6 +148,7 @@ namespace IPtoMail
 
         private static string GetPassword()//TODO сохранить пароль к почте для возможности запуска в скриптах
         {
+            Console.WriteLine("Enter Password for e-mail sender:");
             string password = Console.ReadLine();
             --Console.CursorTop;
             Console.CursorLeft = 0;
@@ -177,15 +181,23 @@ namespace IPtoMail
 
         static void CheckingFiles()
         {
-            if (!File.Exists(logFile))//возможно этот блок убрать: файл создавать при первой записи в лог
+            if (!File.Exists(passFile))
             {
-                using (File.Create(logFile));
+                using (File.Create(passFile));
             }
 
             if (!File.Exists(recipientsFile))
             {
-                using (File.Create(recipientsFile));
-                
+                try
+                {
+                    using (File.Create(recipientsFile))
+                        Console.WriteLine($"Now you can add adresses to file {recipientsFile}");
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine($"Cant create file {recipientsFile}");
+                }
+
             }
             else
             {
