@@ -69,7 +69,8 @@ namespace IPtoMail
 
             public const string recipientsFile = "recipients.list",
                                 logFile = "events.log",
-                                passFile = "password";
+                                passFile = "password",
+                                strToPassfile = "First string in this file is for your password (not password for e-mail) to secure storage password for e-mail";
 
         #endregion
         static void Main(string[] args)
@@ -90,8 +91,8 @@ namespace IPtoMail
                     //Console.WriteLine("Enter Password for e-mail sender:");
                     
                     recipientsList.Add(mailsenderUserName);
+                    Logger.Start();
                     CheckingFiles();
-
                     MailSender sender = new MailSender(mailsenderUserName, GetPassword(), smtpServer, smtpPort, useSSL);
                     while (true)
                     {
@@ -148,17 +149,39 @@ namespace IPtoMail
 
         private static string GetPassword()//TODO сохранить пароль к почте для возможности запуска в скриптах
         {
-            Console.WriteLine("Enter Password for e-mail sender:");
-            string password = Console.ReadLine();
-            --Console.CursorTop;
-            Console.CursorLeft = 0;
-
-            foreach (var _ in password)
-            {
-                Console.Write('*');
+            if (File.Exists(passFile) && !File.ReadAllText(passFile).StartsWith(strToPassfile) )
+            {//можно применить автоматизацию
+                string[] stringsInPassFile = File.ReadAllLines(passFile);
+                
+                if (stringsInPassFile.Length == 1 && stringsInPassFile[0].Length != 0) //1-я заполнена, 2-я нет. Можно зашифровать и сохранить пароль
+                {
+                    Console.WriteLine("1-я заполнена, 2-я нет. Можно зашифровать и сохранить пароль");
+                    return "";
+                }
+                
+                if (stringsInPassFile.Length >= 2 && stringsInPassFile[0].Length != 0 && stringsInPassFile[1].Length != 0) //есть две не пустые строки, пробуем расшифровать
+                {
+                    Console.WriteLine("есть две не пустые строки, пробуем расшифровать");
+                    return "";
+                }
             }
-            Console.WriteLine();
-            return password;
+            //автоматизация невозможна
+            {
+                Console.WriteLine("Enter Password for e-mail sender:");
+                string password = Console.ReadLine();
+                --Console.CursorTop;
+                Console.CursorLeft = 0;
+
+                foreach (var _ in password)
+                {
+                    Console.Write('*');
+                }
+                Console.WriteLine();
+                return password;
+
+            }
+
+
         }
         private static bool CheckRecipientsListUpdate(out List<string> listToSendImmed)
         {
@@ -181,9 +204,19 @@ namespace IPtoMail
 
         static void CheckingFiles()
         {
-            if (!File.Exists(passFile))
+            try
             {
-                using (File.Create(passFile));
+                if (!File.Exists(passFile))
+                {
+                    File.AppendAllText(passFile, strToPassfile);
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine($"Read file {passFile} for instructions to automate");
+                    Console.ResetColor();
+                }
+            }
+            catch (Exception)
+            {
+                Console.WriteLine($"Cant create file {passFile}, automation imposible");
             }
 
             if (!File.Exists(recipientsFile))

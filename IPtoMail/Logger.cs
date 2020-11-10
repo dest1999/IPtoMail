@@ -58,5 +58,11 @@ namespace IPtoMail
 
         }
 
+        internal static void Start()
+        {
+            eventStorage.Add($"**********************************************************************************");
+            eventStorage.Add($"*                       Starting at {DateTime.Now}                          *");
+            eventStorage.Add($"**********************************************************************************");
+        }
     }
 }
