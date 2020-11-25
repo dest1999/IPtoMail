@@ -7,6 +7,8 @@ using System.IO;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace IPtoMail
 {
@@ -147,22 +149,39 @@ namespace IPtoMail
             return false;
         }
 
-        private static string GetPassword()//TODO сохранить пароль к почте для возможности запуска в скриптах
+        private static string GetPassword()
         {
             if (File.Exists(passFile) && !File.ReadAllText(passFile).StartsWith(strToPassfile) )
             {//можно применить автоматизацию
                 string[] stringsInPassFile = File.ReadAllLines(passFile);
                 
-                if (stringsInPassFile.Length == 1 && stringsInPassFile[0].Length != 0) //1-я заполнена, 2-я нет. Можно зашифровать и сохранить пароль
+                if (stringsInPassFile.Length == 1 && stringsInPassFile[0].Length != 0) //1-я заполнена, 2-я нет. Запросить, зашифровать и сохранить пароль
                 {
+                    Console.WriteLine("Enter Password for e-mail sender:");
+                    string passwordForMail = Console.ReadLine();
+                    --Console.CursorTop;
+                    Console.CursorLeft = 0;
+
+                    foreach (var _ in passwordForMail)
+                    {
+                        Console.Write('*');
+                    }
+                    Console.WriteLine();
+
+                    string encryptedPassword = "\n" + EncryptPassword(passwordForMail, stringsInPassFile[0] );
+                    //сдесь записывается encryptedPassword в файл 2-й строкой
+                    File.AppendAllText(passFile, encryptedPassword);
                     Console.WriteLine("1-я заполнена, 2-я нет. Можно зашифровать и сохранить пароль");
-                    return "";
+                    return passwordForMail;
                 }
                 
                 if (stringsInPassFile.Length >= 2 && stringsInPassFile[0].Length != 0 && stringsInPassFile[1].Length != 0) //есть две не пустые строки, пробуем расшифровать
                 {
+                    
+                    //TODO разбить шифрование на EncryptPassword и DecryptPassword
+                    //это временная затычка
                     Console.WriteLine("есть две не пустые строки, пробуем расшифровать");
-                    return "";
+                    return EncryptPassword(stringsInPassFile[1], stringsInPassFile[0]);
                 }
             }
             //автоматизация невозможна
@@ -181,8 +200,41 @@ namespace IPtoMail
 
             }
 
-
         }
+
+        private static string EncryptPassword(string plainText, string passKey)
+        {//TODO простое шифрование XOR, необходимо поменять на стандартный AES
+            byte[] pass = Encoding.Unicode.GetBytes(plainText),
+                   key = Encoding.Unicode.GetBytes(passKey);
+
+            int k = 0;
+            for (int i = 0; i < pass.Length ; i++)
+            {
+                if (k == key.Length) k = 0;
+                pass[i] = (byte)(pass[i] ^ key[k++]);
+            }
+
+
+            #region trueCrypting
+            /*
+            MemoryStream stream = new MemoryStream(Encoding.Unicode.GetBytes(plainText));
+            
+            var aes = Aes.Create();
+            aes.Key = key;
+            byte[] iv = { 0x00, 0x77 }; //aes.IV;
+
+            var encr = aes.CreateEncryptor(key, iv);
+
+            CryptoStream cryptoStream = new CryptoStream(stream, encr, CryptoStreamMode.Write);
+
+            StreamWriter streamWriter = new StreamWriter(cryptoStream);
+            streamWriter.WriteLine(plainText);
+            */
+
+            #endregion
+            return Encoding.Unicode.GetString(pass);
+        }
+
         private static bool CheckRecipientsListUpdate(out List<string> listToSendImmed)
         {
             listToSendImmed = null;
