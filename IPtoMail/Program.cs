@@ -90,8 +90,6 @@ namespace IPtoMail
                             mailsenderUserName = args[0];
 
                     Console.WriteLine($"Sender name: {mailsenderUserName}\nServer parameters: {args[1]}");
-                    //Console.WriteLine("Enter Password for e-mail sender:");
-                    
                     recipientsList.Add(mailsenderUserName);
                     Logger.Start();
                     CheckingFiles();
@@ -113,7 +111,8 @@ namespace IPtoMail
 
                         }
                         Console.Title = $"IP is {currentIP}, last IP check: {DateTime.Now.ToShortTimeString() }";
-                        Thread.Sleep(60000);
+                        //Thread.Sleep(60000);
+                        Thread.Sleep(TimeSpan.FromMinutes(1));
                     }
                 }
                 else
@@ -210,7 +209,7 @@ namespace IPtoMail
 
 
             #region trueCrypting
-            /*
+            
             MemoryStream stream = new MemoryStream(Encoding.Unicode.GetBytes(plainText));
             
             var aes = Aes.Create();
@@ -223,7 +222,7 @@ namespace IPtoMail
 
             StreamWriter streamWriter = new StreamWriter(cryptoStream);
             streamWriter.WriteLine(plainText);
-            */
+            
 
             #endregion
             return Encoding.Unicode.GetString(pass);
