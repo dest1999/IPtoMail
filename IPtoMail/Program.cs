@@ -157,16 +157,7 @@ namespace IPtoMail
                 
                 if (stringsInPassFile.Length == 1 && stringsInPassFile[0].Length != 0) //1-я заполнена, 2-я нет. Запросить, зашифровать и сохранить пароль
                 {
-                    Console.WriteLine("Enter Password for e-mail sender:");
-                    string passwordForMail = Console.ReadLine();
-                    --Console.CursorTop;
-                    Console.CursorLeft = 0;
-
-                    foreach (var _ in passwordForMail)
-                    {
-                        Console.Write('*');
-                    }
-                    Console.WriteLine();
+                    string passwordForMail = GetPasswordFromKeyboard();
 
                     string encryptedPassword = "\n" + EncryptPassword(passwordForMail, stringsInPassFile[0] );
                     //сдесь записывается encryptedPassword в файл 2-й строкой
@@ -185,9 +176,13 @@ namespace IPtoMail
                 }
             }
             //автоматизация невозможна
+            return GetPasswordFromKeyboard();
+            
+            static string GetPasswordFromKeyboard()
             {
                 Console.WriteLine("Enter Password for e-mail sender:");
                 string password = Console.ReadLine();
+
                 --Console.CursorTop;
                 Console.CursorLeft = 0;
 
@@ -197,10 +192,9 @@ namespace IPtoMail
                 }
                 Console.WriteLine();
                 return password;
-
             }
-
         }
+
 
         private static string EncryptPassword(string plainText, string passKey)
         {//TODO простое шифрование XOR, необходимо поменять на стандартный AES
