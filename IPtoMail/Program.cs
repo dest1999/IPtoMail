@@ -71,7 +71,7 @@ namespace IPtoMail
 
             public const string recipientsFile = "recipients.list",
                                 logFile = "events.log",
-                                passFile = "password",
+                                passFile = "password.txt",
                                 strToPassfile = "First string in this file is for your password (not password for e-mail) to secure storage password for e-mail";
 
         #endregion
@@ -157,21 +157,17 @@ namespace IPtoMail
                 if (stringsInPassFile.Length == 1 && stringsInPassFile[0].Length != 0) //1-я заполнена, 2-я нет. Запросить, зашифровать и сохранить пароль
                 {
                     string passwordForMail = GetPasswordFromKeyboard();
-
                     string encryptedPassword = "\n" + EncryptPassword(passwordForMail, stringsInPassFile[0] );
                     //сдесь записывается encryptedPassword в файл 2-й строкой
                     File.AppendAllText(passFile, encryptedPassword);
-                    Console.WriteLine("1-я заполнена, 2-я нет. Можно зашифровать и сохранить пароль");
+                    //Console.WriteLine("1-я заполнена, 2-я нет. Можно зашифровать и сохранить пароль");
                     return passwordForMail;
                 }
                 
                 if (stringsInPassFile.Length >= 2 && stringsInPassFile[0].Length != 0 && stringsInPassFile[1].Length != 0) //есть две не пустые строки, пробуем расшифровать
                 {
-                    
-                    //TODO разбить шифрование на EncryptPassword и DecryptPassword
-                    //это временная затычка
                     Console.WriteLine("есть две не пустые строки, пробуем расшифровать");
-                    return EncryptPassword(stringsInPassFile[1], stringsInPassFile[0]);
+                    return DecryptPassword(stringsInPassFile[1], stringsInPassFile[0]);
                 }
             }
             //автоматизация невозможна
@@ -194,38 +190,54 @@ namespace IPtoMail
             }
         }
 
+        private static string DecryptPassword(string encrText, string passKey)
+        {
+            byte[] bytesToDecrypt = Encoding.Unicode.GetBytes(encrText),
+                   key = Encoding.Unicode.GetBytes(passKey),
+                   iv = { 0x53, 0x02, 0x03, 0x05, 0x07, 0x11, 0x13, 0x17, 0x19, 0x23, 0x29, 0x31, 0x37, 0x41, 0x43, 0x47 }; //aes.IV
+
+            using (Aes aes = Aes.Create())
+            {
+                aes.Key = key;
+                aes.IV = iv;
+                ICryptoTransform decryptor = aes.CreateDecryptor (aes.Key, aes.IV);
+
+                using (MemoryStream mStream = new MemoryStream(bytesToDecrypt))
+                {
+                    using (CryptoStream cryptoStream = new CryptoStream(mStream, decryptor, CryptoStreamMode.Read))
+                    {
+                        using (StreamReader sr = new StreamReader(cryptoStream))
+                        {
+                            return sr.ReadToEnd();
+                        }
+                    }
+                }
+            }
+        }
 
         private static string EncryptPassword(string plainText, string passKey)
-        {//TODO простое шифрование XOR, необходимо поменять на стандартный AES
-            byte[] pass = Encoding.Unicode.GetBytes(plainText),
-                   key = Encoding.Unicode.GetBytes(passKey);
+        {
+            byte[] key = Encoding.Unicode.GetBytes(passKey),
+                   iv = { 0x53, 0x02, 0x03, 0x05, 0x07, 0x11, 0x13, 0x17, 0x19, 0x23, 0x29, 0x31, 0x37, 0x41, 0x43, 0x47 }; //aes.IV
 
-            int k = 0;
-            for (int i = 0; i < pass.Length ; i++)
+            using (Aes aes = Aes.Create())
             {
-                if (k == key.Length) k = 0;
-                pass[i] = (byte)(pass[i] ^ key[k++]);
+                aes.Key = key;
+                aes.IV = iv;
+                ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
+
+                using (MemoryStream mStream = new MemoryStream())
+                {
+                    using(CryptoStream cryptoStream = new CryptoStream(mStream, encryptor, CryptoStreamMode.Write))
+                    {
+                        using (StreamWriter sw = new StreamWriter(cryptoStream))
+                        {
+                            sw.Write(plainText);
+                        }
+                        return Encoding.Unicode.GetString(mStream.ToArray());
+                    }
+                }
             }
-
-
-            #region trueCrypting
-            
-            MemoryStream stream = new MemoryStream(Encoding.Unicode.GetBytes(plainText));
-            
-            var aes = Aes.Create();
-            aes.Key = key;
-            byte[] iv = { 0x00, 0x77 }; //aes.IV;
-
-            var encr = aes.CreateEncryptor(key, iv);
-
-            CryptoStream cryptoStream = new CryptoStream(stream, encr, CryptoStreamMode.Write);
-
-            StreamWriter streamWriter = new StreamWriter(cryptoStream);
-            streamWriter.WriteLine(plainText);
-            
-
-            #endregion
-            return Encoding.Unicode.GetString(pass);
         }
 
         private static bool CheckRecipientsListUpdate(out List<string> listToSendImmed)
@@ -281,9 +293,8 @@ namespace IPtoMail
             {
                 RecipientsListFormer();
             }
-            //CheckRecipientsListUpdate();
-            lastTimeRecipientsListChanged = File.GetLastWriteTime(recipientsFile);
 
+            lastTimeRecipientsListChanged = File.GetLastWriteTime(recipientsFile);
         }
     }
 }
