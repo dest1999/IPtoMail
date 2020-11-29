@@ -71,7 +71,7 @@ namespace IPtoMail
 
             public const string recipientsFile = "recipients.list",
                                 logFile = "events.log",
-                                passFile = "password.txt",
+                                passFile = "password",
                                 strToPassfile = "First string in this file is for your password (not password for e-mail) to secure storage password for e-mail";
 
         #endregion
@@ -166,7 +166,6 @@ namespace IPtoMail
                 
                 if (stringsInPassFile.Length >= 2 && stringsInPassFile[0].Length != 0 && stringsInPassFile[1].Length != 0) //есть две не пустые строки, пробуем расшифровать
                 {
-                    Console.WriteLine("есть две не пустые строки, пробуем расшифровать");
                     return DecryptPassword(stringsInPassFile[1], stringsInPassFile[0]);
                 }
             }
