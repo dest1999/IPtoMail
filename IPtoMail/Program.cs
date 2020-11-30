@@ -214,11 +214,20 @@ namespace IPtoMail
             }
         }
 
+        static Random rnd = new Random();
         private static string EncryptPassword(string plainText, string passKey)
         {
             byte[] key = Encoding.Unicode.GetBytes(passKey),
                    iv = { 0x53, 0x02, 0x03, 0x05, 0x07, 0x11, 0x13, 0x17, 0x19, 0x23, 0x29, 0x31, 0x37, 0x41, 0x43, 0x47 }; //aes.IV
-            //TODO добавить случаюные символы до/после пароля
+            //TODO добавить случайные символы до/после пароля (готово, то же в расшифровку)
+                //byte[] rndArrayBeforePassword = new byte[rnd.Next(10, 21)];
+                //byte[] rndArrayAfterPassword = new byte[rnd.Next(10, 21)];
+                //rnd.NextBytes(rndArrayBeforePassword);
+                //rnd.NextBytes(rndArrayAfterPassword);
+                //rndArrayBeforePassword[0] = (byte)rndArrayBeforePassword.Length;
+                //rndArrayBeforePassword[1] = (byte)rndArrayAfterPassword.Length;
+                //plainText = Encoding.Default.GetString(rndArrayBeforePassword) + plainText + Encoding.Default.GetString(rndArrayAfterPassword);
+
             using (Aes aes = Aes.Create())
             {
                 aes.Key = key;
@@ -281,6 +290,7 @@ namespace IPtoMail
                 {
                     using (File.Create(recipientsFile))
                         Console.WriteLine($"Now you can add adresses to file {recipientsFile}");
+                    lastTimeRecipientsListChanged = File.GetLastWriteTime(recipientsFile);
                 }
                 catch (Exception)
                 {
@@ -290,10 +300,10 @@ namespace IPtoMail
             }
             else
             {
+                lastTimeRecipientsListChanged = File.GetLastWriteTime(recipientsFile);
                 RecipientsListFormer();
             }
 
-            lastTimeRecipientsListChanged = File.GetLastWriteTime(recipientsFile);
         }
     }
 }
