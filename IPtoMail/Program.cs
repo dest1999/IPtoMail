@@ -158,9 +158,10 @@ namespace IPtoMail
                 {
                     string passwordForMail = GetPasswordFromKeyboard();
                     string encryptedPassword = "\n" + EncryptPassword(passwordForMail, stringsInPassFile[0] );
-                    //сдесь записывается encryptedPassword в файл 2-й строкой
-                    File.AppendAllText(passFile, encryptedPassword);
+                    
+                    File.AppendAllText(passFile, encryptedPassword); //сдесь записывается encryptedPassword в файл 2-й строкой
                     //Console.WriteLine("1-я заполнена, 2-я нет. Можно зашифровать и сохранить пароль");
+                    
                     return passwordForMail;
                 }
                 
@@ -191,49 +192,42 @@ namespace IPtoMail
 
         private static string DecryptPassword(string encrText, string passKey)
         {
-            byte[] bytesToDecrypt = Encoding.Unicode.GetBytes(encrText),
+            byte[] bytesToDecrypt = Convert.FromBase64String(encrText),
                    key = Encoding.Unicode.GetBytes(passKey),
-                   iv = { 0x53, 0x02, 0x03, 0x05, 0x07, 0x11, 0x13, 0x17, 0x19, 0x23, 0x29, 0x31, 0x37, 0x41, 0x43, 0x47 }; //aes.IV
-
+                   iv = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53 };
+            string pass;
             using (Aes aes = Aes.Create())
             {
                 aes.Key = key;
                 aes.IV = iv;
                 ICryptoTransform decryptor = aes.CreateDecryptor (aes.Key, aes.IV);
-
+                
                 using (MemoryStream mStream = new MemoryStream(bytesToDecrypt))
                 {
                     using (CryptoStream cryptoStream = new CryptoStream(mStream, decryptor, CryptoStreamMode.Read))
                     {
                         using (StreamReader sr = new StreamReader(cryptoStream))
                         {
-                            return sr.ReadToEnd();
+                            
+                            pass = sr.ReadToEnd();
                         }
                     }
                 }
             }
+            return pass;
         }
 
-        static Random rnd = new Random();
         private static string EncryptPassword(string plainText, string passKey)
         {
             byte[] key = Encoding.Unicode.GetBytes(passKey),
-                   iv = { 0x53, 0x02, 0x03, 0x05, 0x07, 0x11, 0x13, 0x17, 0x19, 0x23, 0x29, 0x31, 0x37, 0x41, 0x43, 0x47 }; //aes.IV
-            //TODO добавить случайные символы до/после пароля (готово, то же в расшифровку)
-                //byte[] rndArrayBeforePassword = new byte[rnd.Next(10, 21)];
-                //byte[] rndArrayAfterPassword = new byte[rnd.Next(10, 21)];
-                //rnd.NextBytes(rndArrayBeforePassword);
-                //rnd.NextBytes(rndArrayAfterPassword);
-                //rndArrayBeforePassword[0] = (byte)rndArrayBeforePassword.Length;
-                //rndArrayBeforePassword[1] = (byte)rndArrayAfterPassword.Length;
-                //plainText = Encoding.Default.GetString(rndArrayBeforePassword) + plainText + Encoding.Default.GetString(rndArrayAfterPassword);
+                   iv = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53 }; //aes.IV
 
             using (Aes aes = Aes.Create())
             {
                 aes.Key = key;
                 aes.IV = iv;
                 ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
-
+                
                 using (MemoryStream mStream = new MemoryStream())
                 {
                     using(CryptoStream cryptoStream = new CryptoStream(mStream, encryptor, CryptoStreamMode.Write))
@@ -242,7 +236,7 @@ namespace IPtoMail
                         {
                             sw.Write(plainText);
                         }
-                        return Encoding.Unicode.GetString(mStream.ToArray());
+                        return Convert.ToBase64String(mStream.ToArray());
                     }
                 }
             }
