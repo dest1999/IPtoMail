@@ -71,7 +71,7 @@ namespace IPtoMail
 
             public const string recipientsFile = "recipients.list",
                                 logFile = "events.log",
-                                passFile = "password",
+                                passFile = "password.txt",
                                 strToPassfile = "First string in this file is for your password (not password for e-mail) to secure storage password for e-mail";
 
         #endregion
@@ -192,6 +192,7 @@ namespace IPtoMail
 
         private static string DecryptPassword(string encrText, string passKey)
         {
+            byte[] tmpStr = Encoding.ASCII.GetBytes(passKey); //testing
             byte[] bytesToDecrypt = Convert.FromBase64String(encrText),
                    key = Encoding.Unicode.GetBytes(passKey),
                    iv = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53 };
@@ -209,7 +210,7 @@ namespace IPtoMail
                         using (StreamReader sr = new StreamReader(cryptoStream))
                         {
                             
-                            pass = sr.ReadToEnd();
+                            pass = sr.ReadToEnd();//в окончательной версии обернуть в try/catch для обработки исключения неверной расшифровки
                         }
                     }
                 }
@@ -219,9 +220,11 @@ namespace IPtoMail
 
         private static string EncryptPassword(string plainText, string passKey)
         {
+            Rfc2898DeriveBytes deriveBytes = new Rfc2898DeriveBytes()
             byte[] key = Encoding.Unicode.GetBytes(passKey),
                    iv = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53 }; //aes.IV
-
+            plainText = Encoding.ASCII.GetString(Encoding.ASCII.GetBytes(plainText));
+            
             using (Aes aes = Aes.Create())
             {
                 aes.Key = key;
