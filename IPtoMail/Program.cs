@@ -220,7 +220,7 @@ namespace IPtoMail
 
         private static string EncryptPassword(string plainText, string passKey)
         {
-            Rfc2898DeriveBytes deriveBytes = new Rfc2898DeriveBytes()
+            //Rfc2898DeriveBytes deriveBytes = new Rfc2898DeriveBytes();
             byte[] key = Encoding.Unicode.GetBytes(passKey),
                    iv = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53 }; //aes.IV
             plainText = Encoding.ASCII.GetString(Encoding.ASCII.GetBytes(plainText));
